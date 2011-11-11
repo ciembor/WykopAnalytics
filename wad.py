@@ -40,18 +40,20 @@ def getPromoted(sort='all'):
 
 #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  
 
-def occurrencesByHours(dates):
-  hours = defaultdict(int)
+def getOccurrences(dates, sort):
+  occurrences = defaultdict(int)
+  sorts = {'hour': '%H', 'day': '%w', 'month': '%m'}
   
-  for id in dates.keys():
-    hours[time.strftime("%H", dates[id])] += 1
+  if sort in sorts.keys():
+    for id in dates.keys():
+      occurrences[time.strftime(sorts[sort], dates[id])] += 1
     
-  return hours
+  return occurrences
 
 ########################################################################
 
-promoted = getPromoted('day')
-occurrences = occurrencesByHours(promoted)
+promoted = getPromoted('week')
+occurrences = getOccurrences(promoted, 'day')
 
-for hour in sorted(occurrences.iterkeys()):
-  print(hour + ': ' + str(occurrences[hour]))
+for key in sorted(occurrences.iterkeys()):
+  print(key + ': ' + str(occurrences[key]))
