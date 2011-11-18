@@ -14,7 +14,7 @@ import config
 
 ########################################################################
 
-def getPromotedFromPage(page, sort='all'):
+def getPromotedFromPage(page, sort='all', last_id=0):
   promoted = dict()
   
   url = config.API + '/links/promoted/page,' + str(page)
@@ -22,8 +22,10 @@ def getPromotedFromPage(page, sort='all'):
     url += ',sort,' + sort
   url += ',' + config.KEY
   
-  sys.stdout.write('pobieram ' + str(page) + ' stronę... ')
+  sys.stdout.write('   pobieram ' + str(page) + ' stronę... ')
   for link in json.load(urllib.urlopen(url)):
+    if int(link['id']) == last_id:
+      break
     promoted[link['id']] = time.strptime(link['date'], "%Y-%m-%d %H:%M:%S")
   print("ok!");
   
@@ -31,17 +33,18 @@ def getPromotedFromPage(page, sort='all'):
   
 #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  
 
-def getPromoted(sort='all'):
+def getPromoted(sort='all', last_id=0):
   promoted = dict()
   i = 1
-  
   while True:
-    page = getPromotedFromPage(i, sort)
-    if not page:
-      break
+    page = getPromotedFromPage(i, sort, last_id)
+    #if not page:
+    #  break
     promoted.update(page)
+    if len(page) < 25:
+      break
     i += 1
-    
+  print('   pobrano ' + str(i-1) + ' nowych znalezisk')
   return promoted
 
 #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  
@@ -61,43 +64,118 @@ def getOccurrences(dates, sort):
 def getLastId():
   url = config.API + '/links/upcoming/sort,date'
   url += ',' + config.KEY
-  return json.load(urllib.urlopen(url))[0]['id']
+  if not 'error' in link.keys():
+    return json.load(urllib.urlopen(url))[0]['id']
+  else:
+    print('error!')
 
 #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  
 
 def getLinks(firstId, lastId): 
   links = dict()
-  
-  # test
-  begin = datetime.datetime.now()
-  
+
   for ident in range(firstId, lastId + 1):
     url = config.API + '/link/index/' + str(ident)
     url += '/' + config.KEY
     link = json.load(urllib.urlopen(url))
     if not 'error' in link.keys():
       links[link['id']] = time.strptime(link['date'], "%Y-%m-%d %H:%M:%S")
+
+  return links
+
+#  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  
+
+def saveLinksToFile(links, filename, sort='save'):
+  sorts = {'save': 'w', 'append': 'a'}
   
-  # test
-  end = datetime.datetime.now()
-  print(str((end - begin).seconds) + ' seconds')
+  if sort in sorts.keys():
+    f = open(filename, sorts[sort])
+    for key in links.keys():
+      f.write(str(key) + ':' + str(int(time.mktime(links[key]))) + '\n')
+    f.close()
   
+#  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  
+
+def getUpcomingFromPage(page, sort='date', last_id=0):
+  upcoming = dict()
+  
+  url = config.API + '/links/upcoming/page,' + str(page)
+  if sort in ('date', 'votes', 'comments'):
+    url += ',sort,' + sort
+  url += ',' + config.KEY
+
+  sys.stdout.write('   pobieram ' + str(page) + ' stronę... ')
+  for link in json.load(urllib.urlopen(url)):
+    if int(link['id']) == last_id:
+      break
+    upcoming[link['id']] = time.strptime(link['date'], "%Y-%m-%d %H:%M:%S")
+  print("ok!");
+  
+  return upcoming
+  
+#  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  
+
+def getUpcoming(sort='date', last_id=0):
+  upcoming = dict()
+  i = 1
+  
+  while True:
+    page = getUpcomingFromPage(i, sort, last_id)
+    #if not page:
+    #  break
+    upcoming.update(page)
+    if len(page) < 25:
+      break
+    i += 1
+  print('   pobrano ' + str(i-1) + ' nowych znalezisk')
+  return upcoming
+
+#  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  
+
+def getLinksFromFile(filename):
+  links = dict()
+  f = open(filename, 'r')
+  i = 0
+  for line in f:
+    record = line.split(':')
+    if 2 == len(record):
+      links[int(record[0])] = time.localtime(int(record[1]))
+    else:
+      print("uwaga: nie udało się odczytać " + str(i) + " linii z pliku " + filename)
+    i += 1
+  f.close()
   return links
 
 ########################################################################
 
-"""
-promoted = getPromoted('week')
-occurrences = getOccurrences(promoted, 'day')
+# test
+begin = datetime.datetime.now()
 
-for key in sorted(occurrences.iterkeys()):
-  print(key + ': ' + str(occurrences[key]))
-"""
+print('\n==> ' + begin.strftime('%Y-%m-%d %H:%M:%S') + ' <==')
 
-ident = getLastId()
-links = getLinks(ident - 100, ident)
+print("\n=> strona główna")
+promoted = getLinksFromFile(config.DIR + config.PROMOTED)
+print("   wczytano " + str(len(promoted)) + " znalezisk z historii")
+new_promoted = getPromoted('day', max(promoted.keys(), key=int))
 
-print(len(links))
+print("\n=> wykopalisko")
+upcoming = getLinksFromFile(config.DIR + config.UPCOMING)
+print("   wczytano " + str(len(upcoming)) + " znalezisk z historii")
+new_upcoming = getUpcoming('date', max(upcoming.keys(), key=int))
 
-for key in links.keys():
-  print(str(key) + ':' + str(int(time.mktime(links[key]))))
+for key in new_promoted.keys():
+  promoted[key] = new_promoted[key]
+  
+for key in new_upcoming.keys():
+  upcoming[key] = new_upcoming[key]
+
+# usuń z wykopaliska te znaleziska, które trafiły na stronę główną
+for key in promoted:
+  if key in upcoming.keys():
+    del upcoming[key]
+
+saveLinksToFile(promoted, config.DIR + config.PROMOTED)
+saveLinksToFile(upcoming, config.DIR + config.UPCOMING)
+
+end = datetime.datetime.now()
+print('\n=> aktualizacja trwała ' + str((end - begin).seconds) + ' sekund\n')
