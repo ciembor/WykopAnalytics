@@ -14,7 +14,7 @@ import config
 
 ########################################################################
 
-def getPromotedFromPage(page, sort='all', last_id=0):
+def getPromotedFromPage(page, sort='all', current_promoted={}):
   promoted = dict()
   
   url = config.API + '/links/promoted/page,' + str(page)
@@ -24,27 +24,26 @@ def getPromotedFromPage(page, sort='all', last_id=0):
   
   sys.stdout.write('   pobieram ' + str(page) + ' stronę... ')
   for link in json.load(urllib.urlopen(url)):
-    if int(link['id']) == last_id:
-      break
-    promoted[link['id']] = time.strptime(link['date'], "%Y-%m-%d %H:%M:%S")
+    if not (int(link['id']) in current_promoted.keys()):
+      promoted[link['id']] = time.strptime(link['date'], "%Y-%m-%d %H:%M:%S")
   print("ok!");
   
   return promoted
   
 #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  
 
-def getPromoted(sort='all', last_id=0):
+def getPromoted(sort='all', current_promoted={}):
   promoted = dict()
   i = 1
   while True:
-    page = getPromotedFromPage(i, sort, last_id)
+    page = getPromotedFromPage(i, sort, current_promoted)
     #if not page:
     #  break
     promoted.update(page)
     if len(page) < 25:
       break
     i += 1
-  print('   pobrano ' + str(i-1) + ' nowych znalezisk')
+  print('   pobrano ' + str(len(promoted)) + ' nowych znalezisk')
   return promoted
 
 #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  
@@ -93,7 +92,21 @@ def saveLinksToFile(links, filename, sort='save'):
     for key in links.keys():
       f.write(str(key) + ':' + str(int(time.mktime(links[key]))) + '\n')
     f.close()
-  
+
+#  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  
+
+def saveOccurrencesToFile(occurrences, filename):
+  keys = sorted(occurrences['promoted'].keys())
+  promoted = []
+  upcoming = []
+  for key in keys:
+    promoted.append(occurrences['promoted'][key])
+    upcoming.append(occurrences['upcoming'][key])
+  json_dump = json.dumps({'keys': keys, 'promoted': promoted, 'upcoming': upcoming})
+  f = open(filename, 'w')
+  f.write(json_dump)
+  f.close()
+
 #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  
 
 def getUpcomingFromPage(page, sort='date', last_id=0):
@@ -127,7 +140,7 @@ def getUpcoming(sort='date', last_id=0):
     if len(page) < 25:
       break
     i += 1
-  print('   pobrano ' + str(i-1) + ' nowych znalezisk')
+  print('   pobrano ' + str(len(upcoming)) + ' nowych znalezisk')
   return upcoming
 
 #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  
@@ -148,34 +161,58 @@ def getLinksFromFile(filename):
 
 ########################################################################
 
-# test
 begin = datetime.datetime.now()
-
 print('\n==> ' + begin.strftime('%Y-%m-%d %H:%M:%S') + ' <==')
 
+# pobierz znaleziska ze strony głównej
 print("\n=> strona główna")
 promoted = getLinksFromFile(config.DIR + config.PROMOTED)
 print("   wczytano " + str(len(promoted)) + " znalezisk z historii")
-new_promoted = getPromoted('day', max(promoted.keys(), key=int))
+new_promoted = getPromoted('day', promoted)
 
+# pobierz znaleziska z wykopaliska
 print("\n=> wykopalisko")
 upcoming = getLinksFromFile(config.DIR + config.UPCOMING)
 print("   wczytano " + str(len(upcoming)) + " znalezisk z historii")
 new_upcoming = getUpcoming('date', max(upcoming.keys(), key=int))
 
+# dodaj pobrane znaleziska do obecnych znalezisk
 for key in new_promoted.keys():
-  promoted[key] = new_promoted[key]
-  
+  promoted[key] = new_promoted[key]  
 for key in new_upcoming.keys():
   upcoming[key] = new_upcoming[key]
 
-# usuń z wykopaliska te znaleziska, które trafiły na stronę główną
+# usuń z wykopaliska te znaleziska, które trafiły w międzyczasie na stronę główną
 for key in promoted:
   if key in upcoming.keys():
     del upcoming[key]
 
+# zapisz znaleziska do plików
 saveLinksToFile(promoted, config.DIR + config.PROMOTED)
 saveLinksToFile(upcoming, config.DIR + config.UPCOMING)
+
+print("\n=> generowanie zestawień w formacie JSON")
+
+promoted_occurrences = getOccurrences(promoted, 'hour')
+upcoming_occurrences = getOccurrences(upcoming, 'hour')
+saveOccurrencesToFile({'upcoming': upcoming_occurrences, 
+                       'promoted': promoted_occurrences},
+                       config.DIR + config.HOUR)
+print("   wygenerowano zestawienie godzinne")
+
+promoted_occurrences = getOccurrences(promoted, 'day')
+upcoming_occurrences = getOccurrences(upcoming, 'day')
+saveOccurrencesToFile({'upcoming': upcoming_occurrences, 
+                       'promoted': promoted_occurrences},
+                       config.DIR + config.DAY)
+print("   wygenerowano zestawienie dzienne")
+
+promoted_occurrences = getOccurrences(promoted, 'month')
+upcoming_occurrences = getOccurrences(upcoming, 'month')
+saveOccurrencesToFile({'upcoming': upcoming_occurrences, 
+                       'promoted': promoted_occurrences},
+                       config.DIR + config.MONTH)
+print("   wygenerowano zestawienie miesięczne")
 
 end = datetime.datetime.now()
 print('\n=> aktualizacja trwała ' + str((end - begin).seconds) + ' sekund\n')
