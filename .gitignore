@@ -1,3 +1,4 @@
 *.pyc
 config.py
 frontend/highcharts
+frontend/highcharts/*
