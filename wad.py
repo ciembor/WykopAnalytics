@@ -95,16 +95,28 @@ def saveLinksToFile(links, filename, sort='save'):
 
 #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  
 
-def saveOccurrencesToFile(occurrences, filename):
-  keys = sorted(occurrences['promoted'].keys())
+def packOccurrences(occurrences, keys):
   promoted = []
   upcoming = []
   for key in keys:
-    promoted.append(occurrences['promoted'][key])
-    upcoming.append(occurrences['upcoming'][key])
-  json_dump = json.dumps({'keys': keys, 'promoted': promoted, 'upcoming': upcoming})
+    if key in occurrences['promoted'].keys():
+      promoted.append(occurrences['promoted'][key])
+    else:
+      promoted.append(0);
+    if key in occurrences['upcoming'].keys():
+      upcoming.append(occurrences['upcoming'][key])
+    else:
+      upcoming.append(0);
+  return {'keys': keys, 'promoted': promoted, 'upcoming': upcoming}
+  
+#  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  
+
+def saveOccurrencesToFile(package, filename):
+  output = 'response('
+  output += json.dumps(package);
+  output += ');'
   f = open(filename, 'w')
-  f.write(json_dump)
+  f.write(output)
   f.close()
 
 #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  #  
@@ -191,28 +203,25 @@ for key in promoted:
 saveLinksToFile(promoted, config.DIR + config.PROMOTED)
 saveLinksToFile(upcoming, config.DIR + config.UPCOMING)
 
-print("\n=> generowanie zestawień w formacie JSON")
+print("\n=> generowanie zestawień w formacie JSONP")
+pack = {}
 
-promoted_occurrences = getOccurrences(promoted, 'hour')
-upcoming_occurrences = getOccurrences(upcoming, 'hour')
-saveOccurrencesToFile({'upcoming': upcoming_occurrences, 
-                       'promoted': promoted_occurrences},
-                       config.DIR + config.HOUR)
-print("   wygenerowano zestawienie godzinne")
+hour_occurrences = {'promoted': getOccurrences(promoted, 'hour'), 'upcoming': getOccurrences(upcoming, 'hour')}
+hour_keys = ['00', '01', '02', '03', '04', '05', '06', '07', '08', '09',
+             '10', '11', '12', '13', '14', '15', '16', '17', '18', '19',
+             '20', '21', '22', '23']
+pack['hour'] = packOccurrences(hour_occurrences, hour_keys)
 
-promoted_occurrences = getOccurrences(promoted, 'day')
-upcoming_occurrences = getOccurrences(upcoming, 'day')
-saveOccurrencesToFile({'upcoming': upcoming_occurrences, 
-                       'promoted': promoted_occurrences},
-                       config.DIR + config.DAY)
-print("   wygenerowano zestawienie dzienne")
+day_occurrences = {'promoted': getOccurrences(promoted, 'day'), 'upcoming': getOccurrences(upcoming, 'day')}
+day_keys = ['0', '1', '2', '3', '4', '5', '6']
+pack['day'] = packOccurrences(day_occurrences, day_keys)
 
-promoted_occurrences = getOccurrences(promoted, 'month')
-upcoming_occurrences = getOccurrences(upcoming, 'month')
-saveOccurrencesToFile({'upcoming': upcoming_occurrences, 
-                       'promoted': promoted_occurrences},
-                       config.DIR + config.MONTH)
-print("   wygenerowano zestawienie miesięczne")
+month_occurrences = {'promoted': getOccurrences(promoted, 'month'), 'upcoming': getOccurrences(upcoming, 'month')}
+month_keys = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12']
+pack['month'] = packOccurrences(month_occurrences, month_keys)
+
+saveOccurrencesToFile(pack, config.DIR + config.OUTPUT)
+print("   wygenerowano zestawienia")
 
 end = datetime.datetime.now()
 print('\n=> aktualizacja trwała ' + str((end - begin).seconds) + ' sekund\n')
