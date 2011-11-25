@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 
+# adres api serwisu wykop.pl
 API = 'http://a.wykop.pl'
+
 # klucz do API (http://www.wykop.pl/developers/appnew/)
 KEY = ''
+
 # katalog dla plików z danymi
 DIR = './db/'
+
 # nazwy plików przechowujących dane
 PROMOTED = 'promoted'
 UPCOMING = 'upcoming'
