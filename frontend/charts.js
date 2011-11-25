@@ -16,45 +16,6 @@ function keysToCategories(keys, name) {
   
 }
 
-////////////////////////////////////////////////////////////////////////
-
-Highcharts.setOptions({
-  colors: [
-    '#f58237', 
-    '#367aa9', 
-    '#69dc3e', 
-    '#f24459', 
-  ],
-  credits: {
-    enabled: false
-  },
-  legend: {
-    align: 'right',
-    x: -10,
-    verticalAlign: 'top',
-    y: -3,
-    floating: true,
-    backgroundColor: (Highcharts.theme && Highcharts.theme.legendBackgroundColorSolid) || 'white',
-    borderColor: '#CCC',
-    borderWidth: 1,
-    shadow: false
-  },
-  plotOptions: {
-    column: {
-      stacking: 'normal',
-      borderWidth: 0,
-      shadow: false
-    }
-  },
-  title: {
-    align: "left",
-    x: 63,
-    style: {
-      color: "#000000",
-      "font-weight": "bold"
-    }
-  }
-});
 
 ////////////////////////////////////////////////////////////////////////
 
@@ -105,8 +66,8 @@ function ComparisionChart(id, name, chart_title, x_title, y_title, data) {
   var len = data.keys.length;
   
   for (var i = 0; i < len; i++) {
-    if (data.upcoming[i]) {
-      comparision[i] = Math.round((data.promoted[i] / data.upcoming[i]) * 1000) / 1000;
+    if (data.upcoming[i] && data.promoted[i]) {
+      comparision[i] = Math.round((data.promoted[i] / (data.upcoming[i] + data.promoted[i])) * 1000) / 1000;
     }
     else {
       comparision[i] = 0; // null?
@@ -157,6 +118,46 @@ function ComparisionChart(id, name, chart_title, x_title, y_title, data) {
   }
   
 }
+
+////////////////////////////////////////////////////////////////////////
+
+Highcharts.setOptions({
+  colors: [
+    '#f58237', 
+    '#367aa9', 
+    '#69dc3e', 
+    '#f24459', 
+  ],
+  credits: {
+    enabled: false
+  },
+  legend: {
+    align: 'right',
+    x: -10,
+    verticalAlign: 'top',
+    y: -3,
+    floating: true,
+    backgroundColor: (Highcharts.theme && Highcharts.theme.legendBackgroundColorSolid) || 'white',
+    borderColor: '#CCC',
+    borderWidth: 1,
+    shadow: false
+  },
+  plotOptions: {
+    column: {
+      stacking: 'normal',
+      borderWidth: 0,
+      shadow: false
+    }
+  },
+  title: {
+    align: "left",
+    x: 63,
+    style: {
+      color: "#000000",
+      "font-weight": "bold"
+    }
+  }
+});
 
 ////////////////////////////////////////////////////////////////////////
 
