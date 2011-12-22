@@ -1,22 +1,42 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
-import os
-import sys
-import imp
-import time
-import datetime
+try:
+  import os
+except Exception:
+  print("Nie można importować modułu os.")
+try:
+  import sys
+except Exception:
+  print("Nie można importować modułu sys.")
 
-import urllib
-import json
+try:
+  from optparse import OptionParser
+except Exception:
+  print("Nie można importować OptionParser z modułu optparse.")
+  sys.exit(1)
 
-from collections import defaultdict
-from optparse import OptionParser
+# help i pobranie argumentów programu ##################################
 
-########################################################################
+parser = OptionParser(u"""wad.py [options]
 
-# pobranie argumentów programu
-parser = OptionParser()
+Wykop Analytics
+
+Ten skrypt liczy prawdopodobieństwo pojawienia się "znaleziska"
+na stronie głównej serwisu wykop.pl w zależności od godziny,
+dnia i miesiąca dodania. Zestawienia wyników zapisuje w plikach
+w formacie JSONP.
+
+Dane z serwera są pobieranie co najwyżej z ostatniego dnia,
+więc zalecane jest urochamianie skryptu kilka razy dziennie
+np. przez crontab. Wszystkie pobrane dane są zapisywane do plików
+z historią i wykorzystywane podczas generowania nowych zestawień.
+
+Niezbędne jest podanie ścieżki do pliku z konfiguracją (chyba, że jest
+w katalogu ze skryptem i ma nazwę config.py). Wymagane jest również
+podanie klucza do API serwisu wykop.pl oraz katalogu w którym
+będą przechowywane dane (z linii komend bądź w pliku konfiguracyjnym.""")
+
 parser.add_option("-c", "--config", dest="config",
                   help=u"ścieżka do pliku konfiguracyjnego", metavar="PLIK")
 parser.add_option("-d", "--database", dest="database",
@@ -24,6 +44,42 @@ parser.add_option("-d", "--database", dest="database",
 parser.add_option("-a", "--appkey", dest="appkey",
                   help=u"klucz do API serwisu wykop.pl")
 (options, args) = parser.parse_args()
+
+########################################################################
+
+try:
+  import imp
+except Exception:
+  print("Nie można importować modułu imp.")
+  sys.exit(1)
+try:
+  import time
+except Exception:
+  print("Nie można importować modułu time.")
+  sys.exit(1)
+try:
+  import datetime
+except Exception:
+  print("Nie można importować modułu datetime.")
+  sys.exit(1)
+try:
+  import urllib
+except Exception:
+  print("Nie można importować modułu urllib.")
+  sys.exit(1)
+try:
+  import json
+except Exception:
+  print("Nie można importować modułu json.")
+  sys.exit(1)
+
+try:
+  from collections import defaultdict
+except Exception:
+  print("Nie można importować defaultdict z modułu collections.\n")
+  sys.exit(1)
+
+########################################################################
 
 # walidacja konfiguracji
 try: 
