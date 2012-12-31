@@ -1,0 +1,5 @@
+*.pyc
+config.py
+frontend/highcharts.js
+db
+db/*
